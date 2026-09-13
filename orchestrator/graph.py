@@ -1,6 +1,6 @@
 """Ties planner -> coder -> sandbox test -> reviewer -> retry-on-failure
 together, with a memory store that retrieves similar past fixes before
-coding and saves new approved fixes afterward."""
+coding and saves new approved fixes afterward (tracking provenance)."""
 import shutil
 import subprocess
 import tempfile
@@ -44,6 +44,7 @@ def run_pipeline(
     plan = run_planner(issue_text, file_contents)
 
     memory_lessons = retrieve_similar(issue_text)
+    memory_source = memory_lessons[0]["id"] if memory_lessons else None
 
     feedback = None
     for attempt in range(1, max_attempts + 1):
@@ -63,14 +64,15 @@ def run_pipeline(
         review = run_reviewer(issue_text, diff_text)
 
         if review.approved:
-            store_fix(issue_text, diff_text, review.reasoning, issue_name)
+            store_fix(issue_text, diff_text, review.reasoning, issue_name, derived_from=memory_source or "")
             return {
                 "success": True,
                 "attempts": attempt,
                 "diff": diff_text,
                 "plan": plan,
                 "review": review,
-                "used_memory": len(memory_lessons) > 0,
+                "used_memory": memory_source is not None,
+                "memory_source": memory_source,
             }
 
         feedback = (

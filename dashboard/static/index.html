@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bug Surface</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0A0E17;
+    --bg-panel: #12161F;
+    --bg-panel-hover: #171C27;
+    --border: #232838;
+    --text-primary: #E8ECF4;
+    --text-dim: #6B7280;
+    --planner: #8B5CF6;
+    --coder: #00D9FF;
+    --tester: #FBBF24;
+    --reviewer: #F472B6;
+    --memory: #34D399;
+    --danger: #F87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, .mono { font-family: 'JetBrains Mono', monospace; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-dim); text-transform: uppercase; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--planner), var(--coder)); }
+  .brand-name { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+  .brand-sub { color: var(--text-dim); font-size: 0.82rem; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+  .status-pill .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); }
+  .status-pill.running { color: var(--memory); }
+  .status-pill.running .pulse-dot { background: var(--memory); animation: pulse 1s ease-in-out infinite; }
+  .status-pill.error { color: var(--danger); }
+  .status-pill.error .pulse-dot { background: var(--danger); }
+
+  .pipeline-wrap { padding: 40px 32px 12px; display: flex; flex-direction: column; align-items: center; }
+  .pipeline { display: flex; align-items: center; gap: 0; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 110px; }
+  .stage-node {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2px solid var(--stage-color);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-panel);
+    transition: box-shadow 0.4s ease, background 0.4s ease;
+  }
+  .stage-node .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--stage-color); opacity: 0.5; }
+  .stage.active .stage-node {
+    background: color-mix(in srgb, var(--stage-color) 18%, var(--bg-panel));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 25%, transparent), 0 0 24px color-mix(in srgb, var(--stage-color) 55%, transparent);
+  }
+  .stage.active .dot { opacity: 1; animation: pulse 1.1s ease-in-out infinite; }
+  .stage.done .stage-node { background: color-mix(in srgb, var(--stage-color) 30%, var(--bg-panel)); }
+  .stage.done .dot { opacity: 1; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.5); } }
+  .stage-label { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.05em; color: var(--text-dim); font-weight: 500; }
+  .stage.active .stage-label, .stage.done .stage-label { color: var(--text-primary); }
+
+  .connector {
+    width: 46px; height: 2px; margin: 0 -8px; transform: translateY(-19px);
+    background-image: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px);
+  }
+  .connector.active {
+    background-image: repeating-linear-gradient(90deg, #ffffff 0 6px, transparent 6px 12px);
+    background-size: 24px 2px;
+    animation: dash-flow 0.6s linear infinite;
+  }
+  .connector.done { background-image: none; background-color: var(--text-dim); opacity: 0.6; }
+  @keyframes dash-flow { from { background-position: 0 0; } to { background-position: 24px 0; } }
+
+  .stage-status {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; letter-spacing: 0.08em;
+    color: var(--text-dim); margin-top: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .stage-status .dot-sm { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .tabs { display: flex; gap: 4px; padding: 0 32px; border-bottom: 1px solid var(--border); margin-top: 16px; }
+  .tab {
+    padding: 12px 18px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.03em;
+    font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s ease;
+  }
+  .tab.active { color: var(--text-primary); border-bottom-color: var(--memory); }
+  .tab:hover:not(.active) { color: var(--text-primary); }
+
+  .view { padding: 32px; max-width: 1100px; margin: 0 auto; display: none; }
+  .view.active { display: block; }
+
+  .telemetry-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.06em;
+    color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px;
+  }
+  .telemetry-header .pass-count { color: var(--memory); font-weight: 600; }
+
+  .stats { display: flex; gap: 1px; margin-bottom: 28px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .stat-card { flex: 1; background: var(--bg-panel); padding: 20px 22px; }
+  .stat-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-size: 2.1rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .stat-bar { height: 3px; border-radius: 2px; margin-top: 10px; background: var(--border); overflow: hidden; }
+  .stat-bar > div { height: 100%; border-radius: 2px; }
+  .stat-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-dim); margin-top: 10px; }
+
+  .section-title { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.06em; font-weight: 600; color: var(--text-dim); text-transform: uppercase; margin: 24px 0 10px; }
+
+  table.results-table { width: 100%; border-collapse: collapse; }
+  table.results-table th {
+    text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em;
+    color: var(--text-dim); text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid var(--border);
+  }
+  table.results-table td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  table.results-table tr:hover td { background: var(--bg-panel-hover); }
+  td.mono-cell { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.85rem; }
+
+  .pill { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding: 3px 10px; border-radius: 4px; border: 1px solid; display: inline-block; }
+  .pill.pass { color: var(--memory); border-color: color-mix(in srgb, var(--memory) 50%, transparent); background: color-mix(in srgb, var(--memory) 10%, transparent); }
+  .pill.fail { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  label { display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; }
+  select, input, textarea {
+    width: 100%; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-primary);
+    border-radius: 6px; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
+  }
+  textarea { resize: vertical; }
+  select:focus, input:focus, textarea:focus { outline: 1px solid var(--memory); outline-offset: 1px; }
+
+  .run-btn {
+    background: var(--bg-panel); color: var(--memory); border: 1px solid var(--memory);
+    border-radius: 6px; padding: 12px 24px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; font-size: 0.85rem; letter-spacing: 0.05em; text-transform: uppercase;
+    cursor: pointer; width: 100%; margin-top: 4px; transition: background 0.15s ease;
+  }
+  .run-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--memory) 10%, var(--bg-panel)); }
+  .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .panel { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-top: 20px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .panel-header .eyebrow { margin: 0; }
+  .badge { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 4px; }
+  .badge.running { background: color-mix(in srgb, var(--memory) 15%, transparent); color: var(--memory); }
+  .badge.complete { background: color-mix(in srgb, var(--text-dim) 20%, transparent); color: var(--text-primary); }
+  .badge.add { background: color-mix(in srgb, var(--memory) 15%, transparent); color: var(--memory); margin-right: 6px; }
+  .badge.del { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
+
+  .log-body {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.9;
+    padding: 14px 16px; max-height: 220px; overflow-y: auto;
+  }
+  .log-line { white-space: pre-wrap; }
+  .log-plan { color: var(--planner); }
+  .log-code { color: var(--coder); }
+  .log-test { color: var(--tester); }
+  .log-review { color: var(--reviewer); }
+  .log-memory { color: var(--memory); }
+  .log-dim { color: var(--text-dim); }
+
+  .diff-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+  .diff-table td { padding: 1px 10px; white-space: pre; }
+  .diff-lineno { color: var(--text-dim); text-align: right; width: 36px; user-select: none; }
+  .diff-row-add { background: color-mix(in srgb, var(--memory) 10%, transparent); }
+  .diff-row-add .diff-lineno.new { color: var(--memory); }
+  .diff-row-del { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+  .diff-row-del .diff-lineno.old { color: var(--danger); }
+  .diff-row-hunk td { color: var(--coder); padding-top: 6px; padding-bottom: 6px; }
+  .diff-row-file td { color: var(--text-dim); }
+  .diff-content { color: var(--text-primary); }
+  .diff-row-add .diff-content::before { content: "+ "; color: var(--memory); }
+  .diff-row-del .diff-content::before { content: "- "; color: var(--danger); }
+  .diff-row-ctx .diff-content::before { content: "  "; }
+
+  .review-box { border-left: 3px solid var(--reviewer); padding: 12px 16px; font-size: 0.88rem; color: var(--text-primary); }
+  .memory-tag { display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; color: var(--tester); border: 1px solid color-mix(in srgb, var(--tester) 50%, transparent); background: color-mix(in srgb, var(--tester) 10%, transparent); padding: 3px 10px; border-radius: 4px; margin-left: 10px; }
+
+  .empty-state { color: var(--text-dim); font-size: 0.9rem; padding: 24px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+  .mem-entry { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+  .mem-summary { cursor: pointer; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--coder); display: flex; align-items: center; gap: 10px; }
+  .mem-body { padding: 0 16px 16px; display: none; }
+  .mem-body.open { display: block; }
+  .mem-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 14px; }
+  .mem-cols .eyebrow { margin-bottom: 6px; }
+  .mem-cols p { margin: 0; font-size: 0.88rem; color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <div class="brand-name">Bug Surface</div>
+      <div class="brand-sub">an autonomous dev agent that fixes bugs end-to-end</div>
+    </div>
+  </div>
+  <div class="status-pill" id="status-pill">
+    <span class="pulse-dot"></span>
+    <span id="status-pill-text">STANDBY</span>
+  </div>
+</div>
+
+<div class="pipeline-wrap">
+  <div class="pipeline" id="pipeline">
+    <div class="stage" data-stage="plan" style="--stage-color:#8B5CF6"><div class="stage-node"><div class="dot"></div></div><div class="stage-label">PLAN</div></div>
+    <div class="connector" data-connector="0"></div>
+    <div class="stage" data-stage="code" style="--stage-color:#00D9FF"><div class="stage-node"><div class="dot"></div></div><div class="stage-label">CODE</div></div>
+    <div class="connector" data-connector="1"></div>
+    <div class="stage" data-stage="test" style="--stage-color:#FBBF24"><div class="stage-node"><div class="dot"></div></div><div class="stage-label">TEST</div></div>
+    <div class="connector" data-connector="2"></div>
+    <div class="stage" data-stage="review" style="--stage-color:#F472B6"><div class="stage-node"><div class="dot"></div></div><div class="stage-label">REVIEW</div></div>
+    <div class="connector" data-connector="3"></div>
+    <div class="stage" data-stage="memory" style="--stage-color:#34D399"><div class="stage-node"><div class="dot"></div></div><div class="stage-label">MEMORY</div></div>
+  </div>
+  <div class="stage-status" id="stage-status" style="color:var(--text-dim)">
+    <span class="dot-sm"></span><span id="stage-status-text">STANDBY</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-view="results">Benchmark Results</div>
+  <div class="tab" data-view="live">Live Run</div>
+  <div class="tab" data-view="memory">Memory Store</div>
+</div>
+
+<div class="view active" id="view-results">
+  <div class="telemetry-header">
+    <span>sys · benchmark telemetry</span>
+    <span class="pass-count" id="pass-count"></span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="section-title">Results by issue</div>
+  <table class="results-table" id="results-table" style="display:none">
+    <thead><tr><th>Status</th><th>Issue</th><th>Attempts</th><th>Time</th></tr></thead>
+    <tbody id="result-rows"></tbody>
+  </table>
+  <div id="results-empty"></div>
+</div>
+
+<div class="view" id="view-live">
+  <div class="form-grid">
+    <div>
+      <label>Target repo</label>
+      <select id="repo-select">
+        <option value="tests/fixtures/sample_repo">Calculator (arithmetic bugs)</option>
+        <option value="tests/fixtures/string_repo">String utils</option>
+        <option value="tests/fixtures/list_repo">List utils</option>
+        <option value="tests/fixtures/dict_repo">Dict utils</option>
+        <option value="tests/fixtures/range_repo">Range utils</option>
+      </select>
+    </div>
+    <div>
+      <label>Target file</label>
+      <input id="target-file" placeholder="e.g. calculator.py">
+    </div>
+  </div>
+  <div style="margin-bottom:16px">
+    <label>Issue description</label>
+    <textarea id="issue-text" rows="3" placeholder="e.g. subtract(a, b) returns a + b instead of a - b"></textarea>
+  </div>
+  <div class="form-grid">
+    <div><label>Test command</label><input id="test-cmd" value="pytest -q"></div>
+    <div style="display:flex; align-items:flex-end;"><button class="run-btn" id="run-btn">Run agent</button></div>
+  </div>
+
+  <div class="panel" id="log-panel" style="display:none">
+    <div class="panel-header"><span class="eyebrow">Agent log</span><span class="badge running" id="log-badge">RUNNING</span></div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+
+  <div class="panel" id="diff-panel" style="display:none">
+    <div class="panel-header">
+      <span class="eyebrow" id="diff-filename">Generated diff</span>
+      <span id="diff-badges"></span>
+    </div>
+    <div style="overflow-x:auto"><table class="diff-table" id="diff-table"></table></div>
+  </div>
+
+  <div id="review-output"></div>
+</div>
+
+<div class="view" id="view-memory">
+  <div class="stats" id="memory-stats"></div>
+  <div id="memory-items"></div>
+</div>
+
+<script>
+const API = "";
+let statusPill, stageStatusText, stageStatusIcon;
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("view-" + tab.dataset.view).classList.add("active");
+  });
+});
+
+function escapeHtml(s) {
+  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function setStatusPill(state, text) {
+  const pill = document.getElementById("status-pill");
+  pill.className = "status-pill" + (state ? " " + state : "");
+  document.getElementById("status-pill-text").textContent = text;
+}
+
+function setStageStatus(text, color) {
+  document.getElementById("stage-status").style.color = color || "var(--text-dim)";
+  document.getElementById("stage-status-text").textContent = text;
+}
+
+const STAGE_COLORS = { plan: "#8B5CF6", code: "#00D9FF", test: "#FBBF24", review: "#F472B6", memory: "#34D399" };
+const STAGES = ["plan", "code", "test", "review", "memory"];
+
+function resetPipeline() {
+  document.querySelectorAll(".stage").forEach(s => s.classList.remove("active", "done"));
+  document.querySelectorAll(".connector").forEach(c => c.classList.remove("active", "done"));
+  setStageStatus("STANDBY", "var(--text-dim)");
+  setStatusPill("", "STANDBY");
+}
+
+function advancePipeline(index) {
+  STAGES.forEach((name, i) => {
+    const stage = document.querySelector(`.stage[data-stage="${name}"]`);
+    stage.classList.remove("active", "done");
+    if (i < index) stage.classList.add("done");
+    if (i === index) stage.classList.add("active");
+  });
+  document.querySelectorAll(".connector").forEach((c, i) => {
+    c.classList.remove("active", "done");
+    if (i < index) c.classList.add("done");
+    if (i === index) c.classList.add("active");
+  });
+  setStageStatus(STAGES[index].toUpperCase(), STAGE_COLORS[STAGES[index]]);
+  setStatusPill("running", "RUNNING");
+}
+
+function finishPipeline(success) {
+  document.querySelectorAll(".stage").forEach(s => { s.classList.remove("active"); s.classList.add("done"); });
+  document.querySelectorAll(".connector").forEach(c => { c.classList.remove("active"); c.classList.add("done"); });
+  setStageStatus(success ? "COMPLETE" : "FAILED", success ? "var(--memory)" : "var(--danger)");
+  setStatusPill(success ? "" : "error", success ? "STANDBY" : "ERROR");
+}
+
+async function loadResults() {
+  const res = await fetch(API + "/api/results");
+  const data = await res.json();
+  const statsEl = document.getElementById("stats");
+  const tableEl = document.getElementById("results-table");
+  const rowsEl = document.getElementById("result-rows");
+  const emptyEl = document.getElementById("results-empty");
+  const passCountEl = document.getElementById("pass-count");
+
+  if (!data.results.length) {
+    statsEl.innerHTML = "";
+    tableEl.style.display = "none";
+    emptyEl.innerHTML = `<div class="empty-state">no results yet — run <code>python -m eval.run_eval</code></div>`;
+    passCountEl.textContent = "";
+    return;
+  }
+
+  const passed = data.results.filter(r => r.success).length;
+  passCountEl.textContent = `${passed} / ${data.results.length} PASS`;
+  emptyEl.innerHTML = "";
+  tableEl.style.display = "table";
+
+  statsEl.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Success rate</div>
+      <div class="stat-value" style="color:var(--memory)">${data.success_rate}%</div>
+      <div class="stat-bar"><div style="width:${data.success_rate}%; background:var(--memory)"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg attempts</div>
+      <div class="stat-value" style="color:var(--tester)">${data.avg_attempts}x</div>
+      <div class="stat-bar"><div style="width:${Math.min(data.avg_attempts / 5 * 100, 100)}%; background:var(--tester)"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Issues tested</div>
+      <div class="stat-value">${data.results.length}</div>
+      <div class="stat-sub">benchmark suite v1.0</div>
+    </div>
+  `;
+
+  rowsEl.innerHTML = data.results.map(r => `
+    <tr>
+      <td><span class="pill ${r.success ? 'pass' : 'fail'}">${r.success ? 'PASS' : 'FAIL'}</span></td>
+      <td>${r.issue}</td>
+      <td class="mono-cell">${r.attempts ?? '-'}</td>
+      <td class="mono-cell">${r.seconds}s</td>
+    </tr>
+  `).join("");
+}
+
+function buildMemTag(derivedFrom) {
+  return derivedFrom ? `<span class="memory-tag">via ${derivedFrom}</span>` : "";
+}
+
+async function loadMemory() {
+  const res = await fetch(API + "/api/memory");
+  const data = await res.json();
+  const statsEl = document.getElementById("memory-stats");
+  const itemsEl = document.getElementById("memory-items");
+
+  statsEl.innerHTML = `<div class="stats"><div class="stat-card"><div class="stat-label">Stored fixes</div><div class="stat-value">${data.count}</div></div></div>`;
+
+  if (!data.count) {
+    itemsEl.innerHTML = `<div class="empty-state">no fixes stored yet</div>`;
+    return;
+  }
+
+  itemsEl.innerHTML = data.items.map((item, idx) => `
+    <div class="mem-entry">
+      <div class="mem-summary" onclick="document.getElementById('mem-body-${idx}').classList.toggle('open')">
+        ▸ ${item.id} ${buildMemTag(item.derived_from)}
+      </div>
+      <div class="mem-body" id="mem-body-${idx}">
+        <div class="mem-cols">
+          <div><div class="eyebrow">Issue</div><p>${escapeHtml(item.issue_text)}</p></div>
+          <div><div class="eyebrow">Review notes</div><p>${escapeHtml(item.review_reasoning)}</p></div>
+        </div>
+        <div class="eyebrow" style="margin-bottom:8px">Diff</div>
+        <div style="overflow-x:auto"><table class="diff-table">${buildDiffRows(item.diff).rows}</table></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function buildDiffRows(diffText) {
+  const lines = (diffText || "").split("\n");
+  let oldLine = 0, newLine = 0, addCount = 0, delCount = 0, filename = "";
+  const rows = [];
+  for (const line of lines) {
+    const esc = escapeHtml(line.slice(1));
+    if (line.startsWith("@@")) {
+      const m = line.match(/-(\d+),?\d* \+(\d+),?\d*/);
+      if (m) { oldLine = parseInt(m[1]); newLine = parseInt(m[2]); }
+      rows.push(`<tr class="diff-row-hunk"><td colspan="3">${escapeHtml(line)}</td></tr>`);
+    } else if (line.startsWith("+++") || line.startsWith("---")) {
+      filename = line.replace(/^\+\+\+ b\//, "").replace(/^--- a\//, "");
+      rows.push(`<tr class="diff-row-file"><td colspan="3">${escapeHtml(line)}</td></tr>`);
+    } else if (line.startsWith("+")) {
+      rows.push(`<tr class="diff-row-add"><td class="diff-lineno old"></td><td class="diff-lineno new">${newLine}</td><td class="diff-content">${esc}</td></tr>`);
+      newLine++; addCount++;
+    } else if (line.startsWith("-")) {
+      rows.push(`<tr class="diff-row-del"><td class="diff-lineno old">${oldLine}</td><td class="diff-lineno new"></td><td class="diff-content">${esc}</td></tr>`);
+      oldLine++; delCount++;
+    } else if (line.trim() !== "") {
+      rows.push(`<tr class="diff-row-ctx"><td class="diff-lineno old">${oldLine}</td><td class="diff-lineno new">${newLine}</td><td class="diff-content">${escapeHtml(line.slice(1))}</td></tr>`);
+      oldLine++; newLine++;
+    }
+  }
+  return { rows: rows.join(""), addCount, delCount, filename };
+}
+
+function pushLog(text, cls) {
+  const body = document.getElementById("log-body");
+  const div = document.createElement("div");
+  div.className = "log-line " + (cls || "");
+  div.textContent = text;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+document.getElementById("run-btn").addEventListener("click", async () => {
+  const repo_path = document.getElementById("repo-select").value;
+  const target_file = document.getElementById("target-file").value;
+  const issue_text = document.getElementById("issue-text").value;
+  const test_cmd = document.getElementById("test-cmd").value;
+  const btn = document.getElementById("run-btn");
+  const logPanel = document.getElementById("log-panel");
+  const logBadge = document.getElementById("log-badge");
+  const diffPanel = document.getElementById("diff-panel");
+  const reviewOutput = document.getElementById("review-output");
+
+  if (!target_file || !issue_text) {
+    reviewOutput.innerHTML = `<div class="empty-state">please fill in the target file and issue description</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Running...";
+  logPanel.style.display = "block";
+  diffPanel.style.display = "none";
+  reviewOutput.innerHTML = "";
+  document.getElementById("log-body").innerHTML = "";
+  logBadge.className = "badge running";
+  logBadge.textContent = "RUNNING";
+  resetPipeline();
+
+  pushLog(`→ received issue: ${issue_text}`, "log-dim");
+
+  let stageIdx = 0;
+  advancePipeline(0);
+  pushLog("→ planning fix...", "log-plan");
+
+  const stageInterval = setInterval(() => {
+    stageIdx++;
+    if (stageIdx === 1) { advancePipeline(1); pushLog("→ writing patch...", "log-code"); }
+    else if (stageIdx === 2) { advancePipeline(2); pushLog("→ running tests in sandbox...", "log-test"); }
+    else if (stageIdx === 3) { advancePipeline(3); pushLog("→ submitting diff to reviewer...", "log-review"); }
+    else if (stageIdx >= 4) { advancePipeline(4); clearInterval(stageInterval); }
+  }, 1300);
+
+  try {
+    const res = await fetch(API + "/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_path, issue_text, target_file, test_cmd })
+    });
+    const result = await res.json();
+    clearInterval(stageInterval);
+
+    if (result.success) {
+      finishPipeline(true);
+      pushLog(result.used_memory ? `→ memory: reused pattern from ${result.memory_source}` : "→ memory: no relevant prior fixes found", "log-memory");
+      pushLog("→ reviewer verdict: approved", "log-review");
+      pushLog(`✓ run complete · ${result.attempts} attempt(s)`, "log-memory");
+      logBadge.className = "badge complete";
+      logBadge.textContent = "COMPLETE";
+
+      const parsed = buildDiffRows(result.diff);
+      diffPanel.style.display = "block";
+      document.getElementById("diff-filename").textContent = "diff · " + (parsed.filename || target_file);
+      document.getElementById("diff-badges").innerHTML = `<span class="badge add">+${parsed.addCount}</span><span class="badge del">-${parsed.delCount}</span>`;
+      document.getElementById("diff-table").innerHTML = parsed.rows;
+
+      reviewOutput.innerHTML = `
+        <div class="section-title">Review reasoning</div>
+        <div class="panel review-box">${escapeHtml(result.review_reasoning)}</div>
+      `;
+      loadResults();
+      loadMemory();
+    } else {
+      finishPipeline(false);
+      pushLog(`✗ not resolved after ${result.attempts} attempts`, "log-test");
+      logBadge.className = "badge complete";
+      logBadge.textContent = "FAILED";
+      reviewOutput.innerHTML = `<div class="panel" style="padding:14px 16px"><pre style="margin:0; font-family:'JetBrains Mono',monospace; font-size:0.82rem; white-space:pre-wrap; color:var(--text-dim)">${escapeHtml(result.last_feedback || "")}</pre></div>`;
+    }
+  } catch (e) {
+    clearInterval(stageInterval);
+    finishPipeline(false);
+    pushLog(`✗ request failed: ${e}`, "log-test");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Run agent";
+});
+
+resetPipeline();
+loadResults();
+loadMemory();
+</script>
+</body>
+</html>

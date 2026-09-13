@@ -1,4 +1,4 @@
-# Autonomous Dev Agent
+# Bug Surface
 
 An AI agent system that autonomously fixes software bugs — from a plain-English
 issue description to a tested, reviewed code patch — using a multi-agent pipeline
