@@ -1,0 +1,14 @@
+diff --git a/calculator.py b/calculator.py
+index 0328e7b..1a50db2 100644
+--- a/calculator.py
++++ b/calculator.py
+@@ -3,8 +3,7 @@ def add(a, b):
+ 
+ 
+ def subtract(a, b):
+-    # BUG: should be a - b
+-    return a + b
++    return a - b
+ 
+ 
+ def multiply(a, b):
