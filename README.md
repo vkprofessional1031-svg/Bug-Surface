@@ -72,3 +72,20 @@ pip install -r requirements.txt
 # add your Groq API key to .env as GROQ_API_KEY=...
 python -m scripts.demo_planner
 ```
+
+## Evaluation results
+
+Ran against a 4-issue benchmark spanning three toy repos (arithmetic,
+string processing, list processing bugs):
+
+| Issue | Success | Attempts | Time |
+|---|---|---|---|
+| calculator_subtract | ✅ | 2 | 6.4s |
+| calculator_divide_zero | ✅ | 2 | 6.7s |
+| string_reverse_words | ✅ | 1 | 21.5s |
+| list_unique_items | ✅ | 2 | 51.1s |
+
+**Success rate: 100% (n=4) — average 1.8 attempts to fix.**
+
+Note: small benchmark size (n=4) — not yet representative of real-world
+GitHub issue diversity or difficulty. Expanding this is a next step.
