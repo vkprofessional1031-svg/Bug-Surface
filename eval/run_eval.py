@@ -17,6 +17,7 @@ def main():
                 repo_path=issue["repo_path"],
                 issue_text=issue["issue_text"],
                 target_files=issue["target_files"],
+                test_cmd=issue.get("test_cmd", "pytest -q"),
             )
             elapsed = time.time() - start
             rows.append({

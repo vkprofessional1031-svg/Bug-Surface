@@ -1,5 +1,5 @@
 issue,success,attempts,seconds
-calculator_subtract,True,2,6.4
-calculator_divide_zero,True,2,6.7
-string_reverse_words,True,1,21.5
-list_unique_items,True,2,51.1
+calculator_subtract,True,1,4.0
+calculator_divide_zero,True,2,6.8
+string_reverse_words,True,1,7.7
+list_unique_items,True,2,36.7
