@@ -1,4 +1,4 @@
-"""Ties planner -> coder -> sandbox test -> retry-on-failure together.
+"""Ties planner -> coder -> sandbox test -> reviewer -> retry-on-failure together.
 
 Runs against a throwaway git-initialized COPY of the target repo, so the
 coder agent's edits (and the git diff/reset machinery in Workspace) never
@@ -13,6 +13,7 @@ from tools.file_ops import Workspace
 from tools.sandbox import DockerSandbox, build_image
 from agents.planner import run_planner
 from agents.coder import run_coder
+from agents.reviewer import run_reviewer
 
 
 def _make_git_copy(source_dir: Path) -> Path:
@@ -35,7 +36,7 @@ def run_pipeline(
     test_cmd: str = "pytest -q",
     max_attempts: int = 5,
 ) -> dict:
-    build_image()  # no-op if already built
+    build_image()
 
     working_copy = _make_git_copy(Path(repo_path))
     ws = Workspace(working_copy)
@@ -52,15 +53,28 @@ def run_pipeline(
         with DockerSandbox(ws.root) as sandbox:
             result = sandbox.run_tests(test_cmd)
 
-        if result.ok:
+        if not result.ok:
+            feedback = f"Tests failed.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+            ws.reset()
+            continue
+
+        diff_text = ws.diff()
+        review = run_reviewer(issue_text, diff_text)
+
+        if review.approved:
             return {
                 "success": True,
                 "attempts": attempt,
-                "diff": ws.diff(),
+                "diff": diff_text,
                 "plan": plan,
+                "review": review,
             }
 
-        feedback = f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        feedback = (
+            f"Tests passed, but code review rejected this fix.\n"
+            f"Reasoning: {review.reasoning}\n"
+            f"Concerns: {'; '.join(review.concerns)}"
+        )
         ws.reset()
 
     return {

@@ -19,3 +19,11 @@ class CodeChange(BaseModel):
 
 class CoderOutput(BaseModel):
     changes: List[CodeChange] = Field(description="All file changes needed to fix the issue")
+
+class ReviewVerdict(BaseModel):
+    approved: bool = Field(description="True if the diff is acceptable to merge")
+    reasoning: str = Field(description="Explanation for the verdict")
+    concerns: List[str] = Field(
+        default_factory=list,
+        description="Specific issues found, empty if approved"
+    )
