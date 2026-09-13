@@ -16,7 +16,7 @@ style, missed edge cases, security smells — before anything is considered done
 
 ## Demo
 
-https://github.com/user-attachments/assets/01b610da-8ec0-40ae-a503-2abd38c42020
+https://github.com/user-attachments/assets/ae47fc8b-c84b-4323-9b29-719587a1a7f7
 
 The full pipeline running end-to-end against a 7-issue benchmark: issue in,
 plan produced, code written, tested inside an isolated Docker sandbox,
