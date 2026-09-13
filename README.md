@@ -13,6 +13,22 @@ loop**. If a fix breaks a test, the agent sees the failure and tries again
 A separate reviewer agent then checks the diff for things tests don't catch —
 style, missed edge cases, security smells — before anything is considered done.
 
+## Demo
+
+https://github.com/user-attachments/assets/01b610da-8ec0-40ae-a503-2abd38c42020
+
+The full pipeline running end-to-end against a 7-issue benchmark: issue in,
+plan produced, code written, tested inside an isolated Docker sandbox,
+reviewed, and a final success-rate summary printed out.
+
+## Demo
+
+https://github.com/user-attachments/assets/01b610da-8ec0-40ae-a503-2abd38c42020
+
+The full pipeline running end-to-end against a 7-issue benchmark: issue in,
+plan produced, code written, tested inside an isolated Docker sandbox,
+reviewed, and a final success-rate summary printed out.
+
 ## Architecture
 
 1. **Planner agent** — takes an issue description, produces a structured plan
