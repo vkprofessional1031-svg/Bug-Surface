@@ -75,27 +75,29 @@ python -m scripts.demo_planner
 ```
 
 
+
 ## Evaluation results
 
-Ran against a 4-issue benchmark spanning three toy repos (arithmetic,
-string processing, list processing bugs). Each issue is graded only
-against the specific test verifying that fix (not the whole test suite),
-to avoid crediting or penalizing the agent for unrelated bugs in the
-same file -- an earlier version of this benchmark ran the full test
-file per issue and showed misleading results as a result.
+Ran against a 7-issue benchmark spanning five toy repos: arithmetic,
+string processing, list processing, dictionary merging/aggregation, and
+range/off-by-one logic. Each issue is graded only against the specific
+test verifying that fix, not the whole test suite, to avoid crediting or
+penalizing the agent for unrelated bugs in the same file.
 
 | Issue | Success | Attempts | Time |
 |---|---|---|---|
-| calculator_subtract | ✅ | 1 | 4.0s |
-| calculator_divide_zero | ✅ | 2 | 6.8s |
-| string_reverse_words | ✅ | 1 | 7.7s |
-| list_unique_items | ✅ | 2 | 36.7s |
+| calculator_subtract | ✅ | 1 | 5.9s |
+| calculator_divide_zero | ✅ | 2 | 7.1s |
+| string_reverse_words | ✅ | 1 | 28.4s |
+| list_unique_items | ✅ | 1 | 33.7s |
+| dict_merge | ✅ | 1 | 30.9s |
+| dict_word_frequency | ✅ | 1 | 28.3s |
+| range_sum_off_by_one | ✅ | 3 | 65.0s |
 
-**Success rate: 100% (n=4) — average 1.5 attempts to fix.**
+**Success rate: 100% (n=7) — average 1.4 attempts to fix.**
 
-Note: small benchmark (n=4), not yet representative of real-world GitHub
-issue diversity. `list_unique_items` consistently takes longer and more
-attempts than the others -- likely because it requires reasoning about
-an invariant (order preservation during deduplication) rather than a
-single mechanical operator swap, an early signal that fix difficulty
-correlates with reasoning complexity, not just code size.
+Note: still a small benchmark (n=7), not representative of real-world
+GitHub issue diversity or scale. `range_sum_off_by_one` took 3 attempts,
+the most of any issue — off-by-one errors are a classic case where a
+plausible-looking fix can still be subtly wrong, which is exactly the
+kind of case the test-driven retry loop exists for.
