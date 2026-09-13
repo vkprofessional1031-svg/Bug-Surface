@@ -39,7 +39,7 @@ style, missed edge cases, security smells — before anything is considered done
 - [x] **Test-driven retry loop** — coder retries on test failure using real test output as feedback, verified with a controlled failure/recovery case
 - [x] **Reviewer agent** — adversarial post-test review, verified with substantive real approve/reject reasoning (`agents/reviewer.py`)
 - [x] **Evaluation benchmark** — 4 diverse bugs across 3 toy repos, 100% success rate, 1.5 avg attempts (`eval/`)
-- [ ] Memory store (vector DB + retrieval)
+- [x] **Memory store** — Chroma + sentence-transformers, retrieves similar past fixes and injects them into the coder's prompt; verified that a new but similar bug (`modulo` by zero) reused the exact fix pattern from an earlier stored lesson (`divide` by zero) (`memory/store.py`)
 - [ ] Dashboard
 
 ## Tech stack
