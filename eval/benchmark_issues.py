@@ -38,4 +38,33 @@ BENCHMARK_ISSUES = [
         "target_files": ["list_utils.py"],
         "test_cmd": "pytest -q -k test_unique_items",
     },
+    {
+        "name": "dict_merge",
+        "repo_path": "tests/fixtures/dict_repo",
+        "issue_text": "merge_dicts(d1, d2) is supposed to combine both "
+                       "dictionaries (with d2's values taking priority on "
+                       "overlapping keys), but it currently just returns "
+                       "d1 unchanged.",
+        "target_files": ["dict_utils.py"],
+        "test_cmd": "pytest -q -k test_merge_dicts",
+    },
+    {
+        "name": "dict_word_frequency",
+        "repo_path": "tests/fixtures/dict_repo",
+        "issue_text": "count_word_frequency(words) is supposed to count how "
+                       "many times each word appears in the list, but it "
+                       "currently just sets each word's count to 1, "
+                       "overwriting instead of accumulating.",
+        "target_files": ["dict_utils.py"],
+        "test_cmd": "pytest -q -k test_count_word_frequency",
+    },
+    {
+        "name": "range_sum_off_by_one",
+        "repo_path": "tests/fixtures/range_repo",
+        "issue_text": "sum_range(start, end) is supposed to sum all integers "
+                       "from start to end INCLUSIVE, but it currently "
+                       "excludes the end value due to an off-by-one error.",
+        "target_files": ["range_utils.py"],
+        "test_cmd": "pytest -q -k test_sum_range",
+    },
 ]
