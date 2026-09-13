@@ -35,11 +35,12 @@ style, missed edge cases, security smells — before anything is considered done
       `tools/file_ops.py`), fully tested (7 passing tests)
 - [x] **Planner agent** — Groq (`openai/gpt-oss-120b`) + Instructor for
       schema-validated structured planning output (`agents/planner.py`)
-- [ ] Coder agent
-- [ ] Test-driven retry loop
-- [ ] Reviewer agent
+- [x] **Coder agent** — Groq + Instructor (JSON mode) for structured code fixes (`agents/coder.py`)
+- [x] **Test-driven retry loop** — coder retries on test failure using real test output as feedback, verified with a controlled failure/recovery case
+- [x] **Reviewer agent** — adversarial post-test review, verified with substantive real approve/reject reasoning (`agents/reviewer.py`)
+- [x] **Evaluation benchmark** — 4 diverse bugs across 3 toy repos, 100% success rate, 1.5 avg attempts (`eval/`)
 - [ ] Memory store (vector DB + retrieval)
-- [ ] Evaluation benchmark against real bugs
+- [ ] Dashboard
 
 ## Tech stack
 
@@ -73,19 +74,28 @@ pip install -r requirements.txt
 python -m scripts.demo_planner
 ```
 
+
 ## Evaluation results
 
 Ran against a 4-issue benchmark spanning three toy repos (arithmetic,
-string processing, list processing bugs):
+string processing, list processing bugs). Each issue is graded only
+against the specific test verifying that fix (not the whole test suite),
+to avoid crediting or penalizing the agent for unrelated bugs in the
+same file -- an earlier version of this benchmark ran the full test
+file per issue and showed misleading results as a result.
 
 | Issue | Success | Attempts | Time |
 |---|---|---|---|
-| calculator_subtract | ✅ | 2 | 6.4s |
-| calculator_divide_zero | ✅ | 2 | 6.7s |
-| string_reverse_words | ✅ | 1 | 21.5s |
-| list_unique_items | ✅ | 2 | 51.1s |
+| calculator_subtract | ✅ | 1 | 4.0s |
+| calculator_divide_zero | ✅ | 2 | 6.8s |
+| string_reverse_words | ✅ | 1 | 7.7s |
+| list_unique_items | ✅ | 2 | 36.7s |
 
-**Success rate: 100% (n=4) — average 1.8 attempts to fix.**
+**Success rate: 100% (n=4) — average 1.5 attempts to fix.**
 
-Note: small benchmark size (n=4) — not yet representative of real-world
-GitHub issue diversity or difficulty. Expanding this is a next step.
+Note: small benchmark (n=4), not yet representative of real-world GitHub
+issue diversity. `list_unique_items` consistently takes longer and more
+attempts than the others -- likely because it requires reasoning about
+an invariant (order preservation during deduplication) rather than a
+single mechanical operator swap, an early signal that fix difficulty
+correlates with reasoning complexity, not just code size.
