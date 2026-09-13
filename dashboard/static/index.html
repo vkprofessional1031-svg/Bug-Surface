@@ -21,6 +21,41 @@
     --memory: #34D399;
     --danger: #F87171;
   }
+  [data-theme="light"] {
+    --bg-deep: #F7F8FA;
+    --bg-panel: #FFFFFF;
+    --bg-panel-hover: #F0F2F5;
+    --border: #E2E5EA;
+    --text-primary: #1A1D24;
+    --text-dim: #6B7280;
+    --planner: #7C3AED;
+    --coder: #0891B2;
+    --tester: #D97706;
+    --reviewer: #DB2777;
+    --memory: #059669;
+    --danger: #DC2626;
+  }
+  body { transition: background 0.2s ease, color 0.2s ease; }
+
+  .theme-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+  }
+  .theme-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .theme-btn:hover { background: var(--bg-panel-hover); color: var(--text-primary); transform: scale(1.06); }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -37,7 +72,11 @@
     padding: 20px 32px; border-bottom: 1px solid var(--border);
   }
   .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-mark { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--planner), var(--coder)); }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+  .brand-mark .logo-light { display: none; }
+  [data-theme="light"] .brand-mark .logo-dark { display: none; }
+  [data-theme="light"] .brand-mark .logo-light { display: block; }
   .brand-name { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
   .brand-sub { color: var(--text-dim); font-size: 0.82rem; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
 
@@ -87,8 +126,9 @@
   @keyframes dash-flow { from { background-position: 0 0; } to { background-position: 24px 0; } }
 
   .stage-status {
+    display: none;
     font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; letter-spacing: 0.08em;
-    color: var(--text-dim); margin-top: 14px; display: flex; align-items: center; gap: 8px;
+    color: var(--text-dim); margin-top: 14px; align-items: center; gap: 8px;
   }
   .stage-status .dot-sm { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
@@ -202,10 +242,14 @@
 </style>
 </head>
 <body>
+  <div class="theme-toggle"><button class="theme-btn" id="theme-toggle" title="Toggle theme">🌙</button></div>
 
 <div class="topbar">
   <div class="brand">
-    <div class="brand-mark"></div>
+    <div class="brand-mark">
+      <img src="/assets/logo-dark.png" alt="Bug Surface logo" class="logo-dark">
+      <img src="/assets/logo-light.png" alt="Bug Surface logo" class="logo-light">
+    </div>
     <div>
       <div class="brand-name">Bug Surface</div>
       <div class="brand-sub">an autonomous dev agent that fixes bugs end-to-end</div>
@@ -303,6 +347,29 @@
 
 <script>
 const API = "";
+
+const SUN_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`;
+
+const MOON_ICON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+(function initTheme() {
+  const saved = localStorage.getItem("bugsurface-theme") || "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+  updateThemeButton(saved);
+})();
+
+function updateThemeButton(theme) {
+  const btn = document.getElementById("theme-toggle");
+  if (btn) btn.innerHTML = theme === "light" ? SUN_ICON : MOON_ICON;
+}
+
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  const next = current === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("bugsurface-theme", next);
+  updateThemeButton(next);
+});
 let statusPill, stageStatusText, stageStatusIcon;
 
 document.querySelectorAll(".tab").forEach(tab => {
