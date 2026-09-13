@@ -11,3 +11,11 @@ class Plan(BaseModel):
     subtasks: List[str] = Field(
         description="Ordered, concrete steps to fix the issue"
     )
+
+class CodeChange(BaseModel):
+    file_path: str = Field(description="Relative path of the file being changed")
+    new_content: str = Field(description="The complete new content of the file after the fix")
+    explanation: str = Field(description="Brief explanation of what was changed and why")
+
+class CoderOutput(BaseModel):
+    changes: List[CodeChange] = Field(description="All file changes needed to fix the issue")
