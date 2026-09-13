@@ -1,9 +1,6 @@
-"""Ties planner -> coder -> sandbox test -> reviewer -> retry-on-failure together.
-
-Runs against a throwaway git-initialized COPY of the target repo, so the
-coder agent's edits (and the git diff/reset machinery in Workspace) never
-touch the real project repo or the original fixture files.
-"""
+"""Ties planner -> coder -> sandbox test -> reviewer -> retry-on-failure
+together, with a memory store that retrieves similar past fixes before
+coding and saves new approved fixes afterward."""
 import shutil
 import subprocess
 import tempfile
@@ -14,6 +11,7 @@ from tools.sandbox import DockerSandbox, build_image
 from agents.planner import run_planner
 from agents.coder import run_coder
 from agents.reviewer import run_reviewer
+from memory.store import store_fix, retrieve_similar
 
 
 def _make_git_copy(source_dir: Path) -> Path:
@@ -33,6 +31,7 @@ def run_pipeline(
     repo_path: str,
     issue_text: str,
     target_files: list[str],
+    issue_name: str,
     test_cmd: str = "pytest -q",
     max_attempts: int = 5,
 ) -> dict:
@@ -44,9 +43,11 @@ def run_pipeline(
     file_contents = {f: ws.read_file(f) for f in target_files}
     plan = run_planner(issue_text, file_contents)
 
+    memory_lessons = retrieve_similar(issue_text)
+
     feedback = None
     for attempt in range(1, max_attempts + 1):
-        coder_output = run_coder(plan, file_contents, test_feedback=feedback)
+        coder_output = run_coder(plan, file_contents, test_feedback=feedback, memory_lessons=memory_lessons)
         for change in coder_output.changes:
             ws.write_file(change.file_path, change.new_content)
 
@@ -62,12 +63,14 @@ def run_pipeline(
         review = run_reviewer(issue_text, diff_text)
 
         if review.approved:
+            store_fix(issue_text, diff_text, review.reasoning, issue_name)
             return {
                 "success": True,
                 "attempts": attempt,
                 "diff": diff_text,
                 "plan": plan,
                 "review": review,
+                "used_memory": len(memory_lessons) > 0,
             }
 
         feedback = (

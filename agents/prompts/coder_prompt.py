@@ -19,3 +19,16 @@ Current file contents:
 {feedback_section}
 
 Produce the complete fixed file contents."""
+
+
+def build_memory_context(lessons: list[dict]) -> str:
+    if not lessons:
+        return ""
+    sections = []
+    for lesson in lessons:
+        sections.append(
+            f"Similar past issue: {lesson['past_issue']}\n"
+            f"How it was fixed:\n{lesson['past_diff']}\n"
+            f"Review notes at the time: {lesson['past_review_notes']}"
+        )
+    return "\n\nRelevant past fixes (for reference, adapt as needed):\n" + "\n\n".join(sections)
